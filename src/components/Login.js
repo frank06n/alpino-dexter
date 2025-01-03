@@ -16,7 +16,7 @@ const Login = ({ onLogin }) => {
             } else {
                 await signInWithEmailAndPassword(auth, email, password);
             }
-            onLogin();
+            onLogin(email);
         } catch (error) {
             console.error(error.message);
         }

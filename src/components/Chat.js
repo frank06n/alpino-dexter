@@ -1,53 +1,82 @@
 // src/components/Chat.js
 import React, { useState, useEffect } from "react";
-import { auth, database } from "../firebase";
-import { ref, push, onValue } from "firebase/database";
+import { database, fetchPublicKey, saveMessage } from "../firebase";
+import { ref, onValue } from "firebase/database";
+import { decryptMessage, encryptMessage } from "../cryptoUtils";
 
-const Chat = () => {
+const Chat = ({ userId }) => {
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState("");
 
     useEffect(() => {
-        const messagesRef = ref(database, "messages/");
-        onValue(messagesRef, (snapshot) => {
-            const data = snapshot.val();
-            const loadedMessages = [];
-            for (const id in data) {
-                loadedMessages.push({ id, ...data[id] });
-            }
-            setMessages(loadedMessages);
-        });
-    }, []);
+        const privateKey = localStorage.getItem("privateKey");
 
-    const sendMessage = async () => {
-        if (message.trim() === "") return;
         const messagesRef = ref(database, "messages/");
-        await push(messagesRef, {
-            text: message,
-            sender: auth.currentUser.email,
-            timestamp: Date.now(),
+        onValue(messagesRef, async (snapshot) => {
+            const data = snapshot.val();
+            const decryptedMessages = [];
+
+            // for (const id in data) {
+            //     decryptedMessages.push({ id, ...data[id] });
+            // }
+            for (const id in data) {
+                const msg = data[id];
+                if (msg.recipient === userId) {
+                    const decryptedMessage = await decryptMessage(privateKey, msg.encryptedMessage);
+                    decryptedMessages.push({
+                        ...msg,
+                        decryptedMessage,
+                    });
+                }
+            }
+
+            setMessages(decryptedMessages);
         });
-        setMessage("");
+
+    }, [userId]);
+
+
+    const handleSendMessage = async () => {
+        if (message.trim() === "") return;
+        try {
+            // const recipientPublicKey = await fetchPublicKey(recipientId);
+            // const encryptedMessage = await encryptMessage(recipientPublicKey, message);
+
+            // await saveMessage(senderId, recipientId, encryptedMessage);
+            // // const messagesRef = ref(database, "messages/");
+            // // await push(messagesRef, {
+            // //     text: message,
+            // //     sender: auth.currentUser.email,
+            // //     timestamp: Date.now(),
+            // // });
+            setMessage(""); // Clear the input after sending
+        } catch (error) {
+            console.error("Error sending message:", error);
+        }
     };
 
     return (
         <div>
             <div>
-                {messages.map((msg) => (
-                    <div key={msg.id}>
-                        <strong>{msg.sender}</strong>: {msg.text}
+                {messages.map((msg, index) => (
+                    <div key={index}>
+                        <strong>{msg.sender}</strong>: {msg.decryptedMessage}
                     </div>
                 ))}
             </div>
+
             <input
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type a message"
             />
-            <button onClick={sendMessage}>Send</button>
+            <button onClick={handleSendMessage}>Send</button>
         </div>
     );
 };
+
+
+
 
 export default Chat;
