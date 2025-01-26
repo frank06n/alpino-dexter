@@ -1,0 +1,51 @@
+--> resolve issue:
+/*  User generates key pair for E2EE when login/register, but loses access to the private key when logging in from a new device.
+    common challenge in E2EE systems: **key persistence and recovery**
+    */
+
+--> Test by deploying on vercel
+
+--> research the encryption & data privacy practices
+--> [SUP] buyer/vendor data flow & UI wireframes (RFQ creation). ##refer to docs
+
+==> prepare abstract
+
+
+//-----------------
+refer to RSA-OAEP vs. AES chatgpt thread: https://chatgpt.com/share/677844d3-fbe8-8006-ace9-db792f156e84
+use mix of symm & asymm encryption for large chunks of data for efficiency
+
+pairs:{
+    <pair_id> : ["user1", "user2"],
+    ...
+}
+
+allmessages: {
+    <pair_id> : {
+        0001 : {sender:"user1", data:<AES encrypted data>},
+        0002 : ...,
+        0003 : ...
+    },
+
+    <pair_id> : {...},
+    ...
+}
+
+users: {
+    "user1":{
+        public_key: <publicKeyE2E>,
+        messages: [
+            "user2" : {
+                pair_id: <pair_id>,
+                messages: [
+                    { msg_id:0001, encryptedAesKey: akey0_en1 },
+                    { msg_id:0002, encryptedAesKey: akey1_en1 },
+                    { msg_id:0003, encryptedAesKey: akey2_en1 },
+                    ...
+                ]
+            }
+        ]
+    },
+    "user2": {...},
+    ...
+}
